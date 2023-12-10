@@ -1,29 +1,36 @@
 import re
 import gc
 import uasyncio
+from machine import Pin, PWM
 from pi_board_utils import init_board, change_led_status, connect_to_wlan
 from webpage import webpage_html
+import motor
 
 shutdown_pnmb4 = False
 server = ""
+servo_pwm_left = PWM(Pin(8))
+servo_pwm_right = PWM(Pin(9))
+pnmb4_wheels = motor.start_motor(
+    pwm_left_servo=servo_pwm_left, pwm_right_servo=servo_pwm_right
+)
 
 
 async def handle_action_request(action_request: str) -> str:
     global server
     if "forward" in action_request:
-        # forward()
+        motor.forward(pnmb4_wheels)
         action_request = "forward"
     elif "left" in action_request:
-        # turn_left()
+        motor.turn_left(pnmb4_wheels)
         action_request = "left"
     elif "stop" in action_request:
-        # stop()
+        motor.stop(pnmb4_wheels)
         action_request = "stop"
     elif "right" in action_request:
-        # turn_right()
+        motor.turn_right(pnmb4_wheels)
         action_request = "right"
     elif "back" in action_request:
-        # backward()
+        motor.backward(servos=pnmb4_wheels)
         action_request = "back"
     elif "shutdown" in action_request:
         await stop_server()
@@ -130,5 +137,6 @@ except KeyboardInterrupt:
     print("Terminate")
 finally:
     change_led_status(led_on=False)
+    motor.turn_off_motor(pnmb4_wheels)
     print("Goodbye")
     uasyncio.new_event_loop()
