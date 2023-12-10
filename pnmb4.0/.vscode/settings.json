@@ -1,6 +1,11 @@
 {
-    "python.linting.enabled": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "pylint.args": ["--disable=C0111"],
+    "pylint.path": ["Pico-W-Stub"],
     "python.languageServer": "Pylance",
+    "python.autoComplete.extraPaths": ["Pico-W-Stub"],
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none"
