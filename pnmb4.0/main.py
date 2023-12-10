@@ -25,11 +25,14 @@ async def handle_action_request(action_request: str) -> str:
     elif "back" in action_request:
         # backward()
         action_request = "back"
+    elif "shutdown" in action_request:
+        await stop_server()
+        action_request = "shutdown"
 
     return action_request
 
 
-async def serve_client(reader, writer):
+async def send_response(writer, html_content):
     async def send_headers(
         status_code=200, content_type="text/html", content_length=None
     ):
@@ -40,8 +43,14 @@ async def serve_client(reader, writer):
         writer.write(headers)
         await writer.drain()
 
-    gc.collect()
-    try:
+    await send_headers()
+    writer.write(html_content)
+    await writer.drain()
+    await writer.wait_closed()
+
+
+async def serve_client(reader, writer):
+    async def get_raw_request():
         headers = []
         while True:
             line = await reader.readline()
@@ -52,9 +61,11 @@ async def serve_client(reader, writer):
             headers.append(line)
         request_raw = str("\r\n".join(headers))
         # print(request_raw)
+        return request_raw
 
+    def get_action_request(raw_request):
         request_pattern = re.compile(r"(GET|POST)\s+([^\s]+)\s+HTTP")
-        match = request_pattern.search(request_raw)
+        match = request_pattern.search(raw_request)
         action_request = ""
         if match:
             # method = match.group(1)
@@ -62,7 +73,7 @@ async def serve_client(reader, writer):
             # print(f"regex match: {method}, {url}")
             action_request = url
         else:  # regex didn't match, try splitting the request line
-            request_parts = request_raw.split(" ")
+            request_parts = raw_request.split(" ")
             if len(request_parts) > 1:
                 # method = request_parts[0]
                 url = request_parts[1]
@@ -71,17 +82,14 @@ async def serve_client(reader, writer):
             else:
                 # print("no match")
                 pass
+        return action_request
 
-        if "shutdown" in action_request:
-            print("Shutting down")
-            await stop_server()
-            return
+    gc.collect()
+    try:
+        request_raw = await get_raw_request()
+        action_request = get_action_request(request_raw)
         verified_action_request = await handle_action_request(action_request)
-
-        await send_headers()
-        writer.write(webpage_html(verified_action_request))
-        await writer.drain()
-        await writer.wait_closed()
+        await send_response(writer, html_content=webpage_html(verified_action_request))
     except OSError as e:
         print(e)
 
@@ -99,6 +107,7 @@ async def start_server():
 
 async def stop_server():
     global server
+    global shutdown_pnmb4
     server.close()
     await server.wait_closed()
     shutdown_pnmb4 = True
@@ -121,4 +130,5 @@ except KeyboardInterrupt:
     print("Terminate")
 finally:
     change_led_status(led_on=False)
+    print("Goodbye")
     uasyncio.new_event_loop()
