@@ -5,6 +5,7 @@ from machine import Pin, PWM
 from pi_board_utils import init_board, change_led_status, connect_to_wlan
 from webpage import webpage_html
 import motor
+from us_sensor_HC_SR04 import measure_distance_in_cm
 
 shutdown_pnmb4 = False
 server = ""
@@ -13,6 +14,9 @@ servo_pwm_right = PWM(Pin(9))
 pnmb4_wheels = motor.start_motor(
     pwm_left_servo=servo_pwm_left, pwm_right_servo=servo_pwm_right
 )
+us_sensor_trigger = Pin(13, Pin.OUT)
+us_sensor_echo = Pin(17, Pin.IN)
+last_measured_distance_to_sensor_in_cm: float = 0.0
 
 
 async def handle_action_request(action_request: str) -> str:
@@ -107,6 +111,17 @@ async def idle_loop():
         await uasyncio.sleep(0.2)
 
 
+async def measure_distance_for_us_sensor_loop(frequency_in_seconds: float = 1.0):
+    global last_measured_distance_to_sensor_in_cm
+    global shutdown_pnmb4
+    while not shutdown_pnmb4:
+        last_measured_distance_to_sensor_in_cm = await measure_distance_in_cm(
+            us_sensor_trigger, us_sensor_echo
+        )
+        print(f"Distance to us sensor: {last_measured_distance_to_sensor_in_cm} cm")
+        await uasyncio.sleep(frequency_in_seconds)
+
+
 async def start_server():
     global server
     server = await uasyncio.start_server(serve_client, "0.0.0.0", 80)
@@ -122,12 +137,11 @@ async def stop_server():
 
 
 async def main(background_task):
-    async def server_and_background_task():
-        await uasyncio.gather(start_server(), background_task())
-
     ip = await connect_to_wlan()
     print(f"connect to {ip}")
-    await server_and_background_task()
+    await uasyncio.gather(
+        start_server(), measure_distance_for_us_sensor_loop(), background_task()
+    )
 
 
 try:
