@@ -6,17 +6,26 @@ from pi_board_utils import init_board, change_led_status, connect_to_wlan
 from webpage import webpage_html
 import motor
 from us_sensor_HC_SR04 import measure_distance_in_cm
+from speaker import hold_tone, be_quiet
 
 shutdown_pnmb4 = False
 server = ""
+last_measured_distance_to_sensor_in_cm: float = 100000.0
+distance_in_cm_when_stop_is_forced = 5.0
+
+
 servo_pwm_left = PWM(Pin(8))
 servo_pwm_right = PWM(Pin(9))
 pnmb4_wheels = motor.start_motor(
     pwm_left_servo=servo_pwm_left, pwm_right_servo=servo_pwm_right
 )
+
+
 us_sensor_trigger = Pin(13, Pin.OUT)
 us_sensor_echo = Pin(17, Pin.IN)
-last_measured_distance_to_sensor_in_cm: float = 0.0
+
+
+speaker_out = PWM(Pin(22))
 
 
 async def handle_action_request(action_request: str) -> str:
@@ -111,14 +120,42 @@ async def idle_loop():
         await uasyncio.sleep(0.2)
 
 
+async def control_audio_proximity_warning(frequency_in_seconds: float = 0.1):
+    global last_measured_distance_to_sensor_in_cm
+    global shutdown_pnmb4
+
+    speaker_tone_frequency = 120
+    original_frequency_in_seconds = frequency_in_seconds
+    time_level = (0.5 - 0.01) / 20.0
+
+    while not shutdown_pnmb4:
+        if last_measured_distance_to_sensor_in_cm > 20.0:
+            be_quiet(speaker_out)
+            frequency_in_seconds = original_frequency_in_seconds
+        else:
+            hold_tone(
+                speaker=speaker_out,
+                frequency=speaker_tone_frequency,
+                duration_in_seconds=0.1,
+            )
+            be_quiet(speaker=speaker_out)
+            frequency_in_seconds = (
+                0.01 + last_measured_distance_to_sensor_in_cm * time_level
+            )
+        await uasyncio.sleep(frequency_in_seconds)
+
+
 async def measure_distance_for_us_sensor_loop(frequency_in_seconds: float = 1.0):
     global last_measured_distance_to_sensor_in_cm
+    global distance_in_cm_when_stop_is_forced
     global shutdown_pnmb4
     while not shutdown_pnmb4:
         last_measured_distance_to_sensor_in_cm = await measure_distance_in_cm(
             us_sensor_trigger, us_sensor_echo
         )
         print(f"Distance to us sensor: {last_measured_distance_to_sensor_in_cm} cm")
+        if last_measured_distance_to_sensor_in_cm < distance_in_cm_when_stop_is_forced:
+            motor.stop(pnmb4_wheels)
         await uasyncio.sleep(frequency_in_seconds)
 
 
@@ -140,7 +177,10 @@ async def main(background_task):
     ip = await connect_to_wlan()
     print(f"connect to {ip}")
     await uasyncio.gather(
-        start_server(), measure_distance_for_us_sensor_loop(), background_task()
+        start_server(),
+        measure_distance_for_us_sensor_loop(),
+        control_audio_proximity_warning(),
+        background_task(),
     )
 
 
