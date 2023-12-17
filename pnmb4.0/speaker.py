@@ -1,3 +1,7 @@
+"""
+Most code taken from https://www.tomshardware.com/how-to/buzzer-music-raspberry-pi-pico
+"""
+
 from utime import sleep
 from machine import PWM
 
