@@ -11,3 +11,9 @@ This is the completely controlled version with little to no intelligence of its 
 ![back view](images/pnmb4.0-back.jpg)
 
 The components of PNMB4.0 are fixed on foamcore, which is light and sturdy enough to drive around. No effort was made to make it look good yet :grin:.
+
+## Schematics
+
+Here is the wiring for PNMB4.0. The resistors are 10k and the diode is a 1N4732.
+
+![wiring](images/pnmb4.0_bb.jpg)
