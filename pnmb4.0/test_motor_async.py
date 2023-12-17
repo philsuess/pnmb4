@@ -35,8 +35,6 @@ async def main():
     # wait 3 seconds
     await asyncio.sleep(3)
 
-    print("Hallo Benni!!!)")
-
     print("Mit der Uhr")
     servo_left.turn_cv_ms()
     servo_right.turn_cv_ms()
