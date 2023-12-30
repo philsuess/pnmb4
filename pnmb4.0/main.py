@@ -145,7 +145,7 @@ async def control_audio_proximity_warning(frequency_in_seconds: float = 0.1):
         await uasyncio.sleep(frequency_in_seconds)
 
 
-async def measure_distance_for_us_sensor_loop(frequency_in_seconds: float = 1.0):
+async def measure_distance_for_us_sensor_loop(frequency_in_seconds: float = 0.2):
     global last_measured_distance_to_sensor_in_cm
     global distance_in_cm_when_stop_is_forced
     global shutdown_pnmb4
@@ -153,8 +153,9 @@ async def measure_distance_for_us_sensor_loop(frequency_in_seconds: float = 1.0)
         last_measured_distance_to_sensor_in_cm = await measure_distance_in_cm(
             us_sensor_trigger, us_sensor_echo
         )
-        print(f"Distance to us sensor: {last_measured_distance_to_sensor_in_cm} cm")
+        # print(f"Distance to us sensor: {last_measured_distance_to_sensor_in_cm} cm")
         if last_measured_distance_to_sensor_in_cm < distance_in_cm_when_stop_is_forced:
+            print("PROXIMITY WARNING!! FORCING STOP!!")
             motor.stop(pnmb4_wheels)
         await uasyncio.sleep(frequency_in_seconds)
 
@@ -178,7 +179,7 @@ async def main(background_task):
     print(f"connect to {ip}")
     await uasyncio.gather(
         start_server(),
-        measure_distance_for_us_sensor_loop(),
+        # measure_distance_for_us_sensor_loop(),
         control_audio_proximity_warning(),
         background_task(),
     )
@@ -186,7 +187,7 @@ async def main(background_task):
 
 try:
     init_board()
-    uasyncio.run(main(background_task=idle_loop))
+    uasyncio.run(main(background_task=measure_distance_for_us_sensor_loop))
 except KeyboardInterrupt:
     print("Terminate")
 finally:
