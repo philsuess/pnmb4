@@ -155,6 +155,7 @@ async def measure_distance_for_us_sensor_loop(frequency_in_seconds: float = 1.0)
         )
         print(f"Distance to us sensor: {last_measured_distance_to_sensor_in_cm} cm")
         if last_measured_distance_to_sensor_in_cm < distance_in_cm_when_stop_is_forced:
+            print("PROXIMITY WARNING!! FORCING STOP!!")
             motor.stop(pnmb4_wheels)
         await uasyncio.sleep(frequency_in_seconds)
 
