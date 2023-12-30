@@ -14,6 +14,6 @@ The components of PNMB4.0 are fixed on foamcore, which is light and sturdy enoug
 
 ## Schematics
 
-Here is the wiring for PNMB4.0. The resistors are 10k and the diode is a 1N4732.
+Here is the wiring for PNMB4.0. The resistors are 10k and the diode is a 1N4732. That is only needed for 1.5V batteries. If rechargable 1.2V batteries are used, then we don't need this splitter.
 
 ![wiring](images/pnmb4.0_bb.jpg)
